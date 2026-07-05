@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { profile } from '../profile';
-import { BASE_HALF_WIDTH } from '../../constants';
 
 const ARCH_SEGMENTS = 30;
 const ARCH_MAX_HEIGHT = 45;
