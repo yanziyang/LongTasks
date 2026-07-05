@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { buildLegs } from '../src/tower/builders/LegBuilder';
+import { buildCabin } from '../src/tower/builders/CabinBuilder';
+import { buildAntenna } from '../src/tower/builders/AntennaBuilder';
 import { createTowerMaterialFallback } from '../src/tower/materials';
 
 describe('buildLegs', () => {
@@ -100,6 +102,34 @@ describe('buildPlatforms', () => {
   it('has non-zero bounding box', () => {
     const mats = createTowerMaterialFallback();
     const result = buildPlatforms(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
+  });
+});
+
+describe('buildCabin', () => {
+  it('returns a Group', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildCabin(mats, true);
+    expect(result).toBeInstanceOf(THREE.Group);
+  });
+
+  it('has non-zero bounding box', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildCabin(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
+  });
+});
+
+describe('buildAntenna', () => {
+  it('returns a Group', () => {
+    const result = buildAntenna();
+    expect(result).toBeInstanceOf(THREE.Group);
+  });
+
+  it('has non-zero bounding box', () => {
+    const result = buildAntenna();
     const box = new THREE.Box3().setFromObject(result);
     expect(box.isEmpty()).toBe(false);
   });
