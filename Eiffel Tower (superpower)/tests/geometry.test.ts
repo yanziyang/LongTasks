@@ -7,10 +7,10 @@ describe('createTower (edge beams)', () => {
     expect(createTower()).toBeInstanceOf(THREE.Group);
   });
 
-  it('contains exactly 4 edge-beam meshes at this stage', () => {
+  it('contains the 4 edge beams plus lattice members', () => {
     const g = createTower();
     const meshes = g.children.filter((c) => c instanceof THREE.Mesh);
-    expect(meshes.length).toBe(4);
+    expect(meshes.length).toBeGreaterThan(4);
   });
 
   it('is scaled by the scene scale', () => {
