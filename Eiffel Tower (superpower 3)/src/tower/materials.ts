@@ -156,10 +156,7 @@ export const antennaMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.4,
 });
 
-let nightModeActive = false;
-
 export function setNightMode(material: THREE.ShaderMaterial, night: boolean): void {
-  nightModeActive = night;
   if (!material.uniforms) return;
   if (night) {
     material.uniforms.emissiveIntensity.value = 0.45;
@@ -177,10 +174,11 @@ export function setNightMode(material: THREE.ShaderMaterial, night: boolean): vo
     material.uniforms.ambientIntensity.value = 0.6;
     material.uniforms.sparkleTime.value = 0.0;
   }
+  material.userData.nightMode = night;
 }
 
 export function updateSparkle(material: THREE.ShaderMaterial, elapsedMs: number): void {
-  if (!nightModeActive || !material.uniforms) return;
+  if (!material.userData?.nightMode || !material.uniforms) return;
   const interval = SPARKLE_INTERVAL_MS;
   const duration = SPARKLE_DURATION_MS;
   const enterDuration = SPARKLE_ENTER_DURATION_MS;
