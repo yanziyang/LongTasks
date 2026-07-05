@@ -56,3 +56,27 @@ describe('buildLattice', () => {
     expect(box.isEmpty()).toBe(false);
   });
 });
+
+import { buildArches } from '../src/tower/builders/ArchBuilder';
+
+describe('buildArches', () => {
+  it('returns a Group', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildArches(mats, true);
+    expect(result).toBeInstanceOf(THREE.Group);
+  });
+
+  it('contains structural members', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildArches(mats, true);
+    const meshCount = countMeshes(result);
+    expect(meshCount).toBeGreaterThan(10);
+  });
+
+  it('has non-zero bounding box', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildArches(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
+  });
+});

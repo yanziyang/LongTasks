@@ -1,0 +1,109 @@
+import * as THREE from 'three';
+import { profile } from '../profile';
+import { BASE_HALF_WIDTH } from '../../constants';
+
+const ARCH_SEGMENTS = 30;
+const ARCH_MAX_HEIGHT = 45;
+const RING_SPACING = 2.0;
+const ARCH_RADIUS = 0.35;
+const STRUT_RADIUS = 0.2;
+
+function beamBetween(a: THREE.Vector3, b: THREE.Vector3, mat: THREE.Material, radius: number): THREE.Mesh {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  if (len < 0.01) return new THREE.Mesh();
+  const geo = new THREE.CylinderGeometry(radius, radius, len, 6);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(a).add(b).multiplyScalar(0.5);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  return mesh;
+}
+
+function buildSingleArch(
+  start: THREE.Vector3,
+  end: THREE.Vector3,
+  material: THREE.Material,
+): THREE.Group {
+  const group = new THREE.Group();
+  const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+  mid.y = ARCH_MAX_HEIGHT;
+
+  const outwardDir = new THREE.Vector3().crossVectors(
+    new THREE.Vector3(0, 1, 0),
+    new THREE.Vector3().subVectors(end, start).normalize(),
+  ).normalize();
+
+  for (const offset of [-RING_SPACING / 2, RING_SPACING / 2]) {
+    const points: THREE.Vector3[] = [];
+    for (let i = 0; i <= ARCH_SEGMENTS; i++) {
+      const t = i / ARCH_SEGMENTS;
+      const a = new THREE.Vector3().lerpVectors(start, mid, t);
+      const b = new THREE.Vector3().lerpVectors(mid, end, t);
+      const pt = new THREE.Vector3().lerpVectors(a, b, t);
+      pt.add(outwardDir.clone().multiplyScalar(offset));
+      points.push(pt);
+    }
+
+    const curve = new THREE.CatmullRomCurve3(points);
+    const tubeGeo = new THREE.TubeGeometry(curve, ARCH_SEGMENTS, ARCH_RADIUS, 6, false);
+    group.add(new THREE.Mesh(tubeGeo, material));
+  }
+
+  const outerPoints: THREE.Vector3[] = [];
+  const innerPoints: THREE.Vector3[] = [];
+  for (let i = 0; i <= ARCH_SEGMENTS; i += 2) {
+    const t = i / ARCH_SEGMENTS;
+    const a = new THREE.Vector3().lerpVectors(start, mid, t);
+    const b = new THREE.Vector3().lerpVectors(mid, end, t);
+    const pt = new THREE.Vector3().lerpVectors(a, b, t);
+    outerPoints.push(pt.clone().add(outwardDir.clone().multiplyScalar(-RING_SPACING / 2)));
+    innerPoints.push(pt.clone().add(outwardDir.clone().multiplyScalar(RING_SPACING / 2)));
+  }
+
+  for (let i = 0; i < outerPoints.length; i++) {
+    group.add(beamBetween(outerPoints[i], innerPoints[i], material, STRUT_RADIUS));
+  }
+
+  for (let i = 0; i < outerPoints.length - 1; i++) {
+    group.add(beamBetween(outerPoints[i], innerPoints[i + 1], material, STRUT_RADIUS));
+    group.add(beamBetween(innerPoints[i], outerPoints[i + 1], material, STRUT_RADIUS));
+  }
+
+  return group;
+}
+
+export function buildArches(materials: THREE.Material[] | THREE.Material, fallback: boolean): THREE.Group {
+  const group = new THREE.Group();
+  const mat = fallback ? (materials as THREE.Material[])[0] : (materials as THREE.Material);
+  const w = profile(0);
+
+  const corners = [
+    new THREE.Vector3(-w, 0, -w),
+    new THREE.Vector3(w, 0, -w),
+    new THREE.Vector3(w, 0, w),
+    new THREE.Vector3(-w, 0, w),
+  ];
+
+  const edges = [[0, 1], [1, 2], [2, 3], [3, 0]];
+
+  for (const [a, b] of edges) {
+    group.add(buildSingleArch(corners[a], corners[b], mat));
+  }
+
+  group.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.geometry.attributes.position) {
+      const positions = child.geometry.attributes.position;
+      const heightRatios = new Float32Array(positions.count);
+      const vertex = new THREE.Vector3();
+      const matrix = child.matrixWorld;
+      for (let i = 0; i < positions.count; i++) {
+        vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
+        vertex.applyMatrix4(matrix);
+        heightRatios[i] = vertex.y / 330;
+      }
+      child.geometry.setAttribute('heightRatio', new THREE.BufferAttribute(heightRatios, 1));
+    }
+  });
+
+  return group;
+}
