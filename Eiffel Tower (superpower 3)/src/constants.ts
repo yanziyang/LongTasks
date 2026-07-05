@@ -30,6 +30,15 @@ export const CAMERA_TARGET = new THREE.Vector3(0, 150, 0);
 export const AUTO_ROTATION_SPEED = 0.15; // rad/min
 export const AUTO_ROTATION_RECOVERY_S = 3; // seconds to recover speed after drag
 
+export const LEG_TRUSS_WIDTH_BASE = 9.0;
+export const LEG_TRUSS_WIDTH_TOP = 3.5;
+export const LEG_TRUSS_BAY_HEIGHT = 3.0;
+export const LEG_SECTION_HEIGHT = 57;
+export const BODY_BAY_HEIGHT = 4.0;
+export const ARCH_MAX_HEIGHT = 45;
+export const ARCH_SEGMENTS = 30;
+export const ARCH_RING_SPACING = 2.0;
+
 if (BASE_HALF_WIDTH <= 0) throw new Error('BASE_HALF_WIDTH must be positive');
 if (HEIGHT_TOP <= 0) throw new Error('HEIGHT_TOP must be positive');
 if (ANTENNA_HEIGHT <= 0) throw new Error('ANTENNA_HEIGHT must be positive');
@@ -43,3 +52,14 @@ for (let i = 1; i < PLATFORM_HEIGHTS.length; i++) {
     throw new Error('platform heights must be ascending');
   }
 }
+
+if (LEG_TRUSS_WIDTH_BASE <= 0) throw new Error('LEG_TRUSS_WIDTH_BASE must be positive');
+if (LEG_TRUSS_WIDTH_TOP <= 0) throw new Error('LEG_TRUSS_WIDTH_TOP must be positive');
+if (LEG_TRUSS_WIDTH_TOP >= LEG_TRUSS_WIDTH_BASE) throw new Error('LEG_TRUSS_WIDTH_TOP must be less than LEG_TRUSS_WIDTH_BASE');
+if (LEG_TRUSS_BAY_HEIGHT <= 0) throw new Error('LEG_TRUSS_BAY_HEIGHT must be positive');
+if (LEG_SECTION_HEIGHT <= 0) throw new Error('LEG_SECTION_HEIGHT must be positive');
+if (BODY_BAY_HEIGHT <= 0) throw new Error('BODY_BAY_HEIGHT must be positive');
+if (ARCH_MAX_HEIGHT <= 0) throw new Error('ARCH_MAX_HEIGHT must be positive');
+if (ARCH_MAX_HEIGHT >= LEG_SECTION_HEIGHT) throw new Error('ARCH_MAX_HEIGHT must be less than LEG_SECTION_HEIGHT');
+if (ARCH_SEGMENTS < 4) throw new Error('ARCH_SEGMENTS must be at least 4');
+if (ARCH_RING_SPACING <= 0) throw new Error('ARCH_RING_SPACING must be positive');

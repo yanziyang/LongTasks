@@ -49,3 +49,47 @@ describe('constants', () => {
     expect(CAMERA_INITIAL_POSITION.y).toBeGreaterThan(0);
   });
 });
+
+describe('engineering-model constants', () => {
+  it('has positive leg truss width at base', async () => {
+    const { LEG_TRUSS_WIDTH_BASE } = await import('../src/constants');
+    expect(LEG_TRUSS_WIDTH_BASE).toBeGreaterThan(0);
+  });
+
+  it('leg truss width narrows from base to top', async () => {
+    const { LEG_TRUSS_WIDTH_BASE, LEG_TRUSS_WIDTH_TOP } = await import('../src/constants');
+    expect(LEG_TRUSS_WIDTH_TOP).toBeLessThan(LEG_TRUSS_WIDTH_BASE);
+    expect(LEG_TRUSS_WIDTH_TOP).toBeGreaterThan(0);
+  });
+
+  it('has positive leg truss bay height', async () => {
+    const { LEG_TRUSS_BAY_HEIGHT } = await import('../src/constants');
+    expect(LEG_TRUSS_BAY_HEIGHT).toBeGreaterThan(0);
+  });
+
+  it('leg section height equals first platform height', async () => {
+    const { LEG_SECTION_HEIGHT, PLATFORM_HEIGHTS } = await import('../src/constants');
+    expect(LEG_SECTION_HEIGHT).toBe(PLATFORM_HEIGHTS[0]);
+  });
+
+  it('has positive body bay height', async () => {
+    const { BODY_BAY_HEIGHT } = await import('../src/constants');
+    expect(BODY_BAY_HEIGHT).toBeGreaterThan(0);
+  });
+
+  it('has positive arch max height less than leg section height', async () => {
+    const { ARCH_MAX_HEIGHT, LEG_SECTION_HEIGHT } = await import('../src/constants');
+    expect(ARCH_MAX_HEIGHT).toBeGreaterThan(0);
+    expect(ARCH_MAX_HEIGHT).toBeLessThan(LEG_SECTION_HEIGHT);
+  });
+
+  it('has positive arch segments', async () => {
+    const { ARCH_SEGMENTS } = await import('../src/constants');
+    expect(ARCH_SEGMENTS).toBeGreaterThan(4);
+  });
+
+  it('has positive arch ring spacing', async () => {
+    const { ARCH_RING_SPACING } = await import('../src/constants');
+    expect(ARCH_RING_SPACING).toBeGreaterThan(0);
+  });
+});
