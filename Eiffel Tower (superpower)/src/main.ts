@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createTower } from './tower/geometry';
+import { createControls } from './scene/Controls';
 
 const app = document.getElementById('app')!;
 
@@ -13,7 +14,8 @@ scene.background = new THREE.Color(0x9fb8d8);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 1000);
 camera.position.set(6, 1.6, 8);
-camera.lookAt(0, 1.6, 0);
+
+const controls = createControls(camera, renderer.domElement);
 
 const sun = new THREE.DirectionalLight(0xfff2cc, 2.0);
 sun.position.set(5, 8, 4);
@@ -31,6 +33,7 @@ const tower = createTower();
 scene.add(tower);
 
 renderer.setAnimationLoop(() => {
+  controls.update();
   renderer.render(scene, camera);
 });
 
