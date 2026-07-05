@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { profile } from '../profile';
-import { HEIGHT_TOP } from '../../constants';
 
 export function buildCabin(materials: THREE.Material[] | THREE.Material, fallback: boolean): THREE.Group {
   const group = new THREE.Group();
