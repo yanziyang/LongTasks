@@ -22,7 +22,7 @@ export function buildTower(): TowerBuildResult {
   let isFallback = false;
 
   const shaderMat = createTowerMaterial();
-  if (shaderMat.vertexShader && shaderMat.vertexShader.length > 50) {
+  if (shaderMat instanceof THREE.ShaderMaterial && shaderMat.vertexShader.length > 50) {
     material = shaderMat;
   } else {
     material = createTowerMaterialFallback();

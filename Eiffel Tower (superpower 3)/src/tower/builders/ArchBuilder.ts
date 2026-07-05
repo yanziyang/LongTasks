@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { profile } from '../profile';
+import { HEIGHT_TOP } from '../../constants';
 
 const ARCH_SEGMENTS = 30;
 const ARCH_MAX_HEIGHT = 45;
@@ -7,10 +8,10 @@ const RING_SPACING = 2.0;
 const ARCH_RADIUS = 0.35;
 const STRUT_RADIUS = 0.2;
 
-function beamBetween(a: THREE.Vector3, b: THREE.Vector3, mat: THREE.Material, radius: number): THREE.Mesh {
+function beamBetween(a: THREE.Vector3, b: THREE.Vector3, mat: THREE.Material, radius: number): THREE.Mesh | null {
   const dir = new THREE.Vector3().subVectors(b, a);
   const len = dir.length();
-  if (len < 0.01) return new THREE.Mesh();
+  if (len < 0.01) return null;
   const geo = new THREE.CylinderGeometry(radius, radius, len, 6);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(a).add(b).multiplyScalar(0.5);
@@ -60,12 +61,15 @@ function buildSingleArch(
   }
 
   for (let i = 0; i < outerPoints.length; i++) {
-    group.add(beamBetween(outerPoints[i], innerPoints[i], material, STRUT_RADIUS));
+    const b = beamBetween(outerPoints[i], innerPoints[i], material, STRUT_RADIUS);
+    if (b) group.add(b);
   }
 
   for (let i = 0; i < outerPoints.length - 1; i++) {
-    group.add(beamBetween(outerPoints[i], innerPoints[i + 1], material, STRUT_RADIUS));
-    group.add(beamBetween(innerPoints[i], outerPoints[i + 1], material, STRUT_RADIUS));
+    const b1 = beamBetween(outerPoints[i], innerPoints[i + 1], material, STRUT_RADIUS);
+    const b2 = beamBetween(innerPoints[i], outerPoints[i + 1], material, STRUT_RADIUS);
+    if (b1) group.add(b1);
+    if (b2) group.add(b2);
   }
 
   return group;
@@ -98,7 +102,7 @@ export function buildArches(materials: THREE.Material[] | THREE.Material, fallba
       for (let i = 0; i < positions.count; i++) {
         vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
         vertex.applyMatrix4(matrix);
-        heightRatios[i] = vertex.y / 330;
+        heightRatios[i] = vertex.y / HEIGHT_TOP;
       }
       child.geometry.setAttribute('heightRatio', new THREE.BufferAttribute(heightRatios, 1));
     }

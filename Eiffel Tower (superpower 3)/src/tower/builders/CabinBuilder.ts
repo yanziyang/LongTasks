@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { profile } from '../profile';
+import { PLATFORM_HEIGHTS, HEIGHT_TOP } from '../../constants';
 
 export function buildCabin(materials: THREE.Material[] | THREE.Material, fallback: boolean): THREE.Group {
   const group = new THREE.Group();
   const mat = fallback ? (materials as THREE.Material[])[0] : (materials as THREE.Material);
-  const h = 276;
+  const h = PLATFORM_HEIGHTS[2];
   const w = profile(h);
 
   const cabinWidth = w * 0.6;
@@ -34,7 +35,7 @@ export function buildCabin(materials: THREE.Material[] | THREE.Material, fallbac
       for (let i = 0; i < positions.count; i++) {
         vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
         vertex.applyMatrix4(matrix);
-        heightRatios[i] = vertex.y / 301;
+        heightRatios[i] = vertex.y / HEIGHT_TOP;
       }
       child.geometry.setAttribute('heightRatio', new THREE.BufferAttribute(heightRatios, 1));
     }

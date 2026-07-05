@@ -10,13 +10,13 @@ import {
 
 describe('createTowerMaterial', () => {
   it('returns a ShaderMaterial', () => {
-    const mat = createTowerMaterial();
+    const mat = createTowerMaterial()!;
     expect(mat).toBeInstanceOf(THREE.ShaderMaterial);
-    mat.dispose();
+    mat!.dispose();
   });
 
   it('has required uniforms', () => {
-    const mat = createTowerMaterial();
+    const mat = createTowerMaterial()!;
     expect(mat.uniforms.lightDirection).toBeDefined();
     expect(mat.uniforms.lightColor).toBeDefined();
     expect(mat.uniforms.skyColor).toBeDefined();
@@ -24,7 +24,7 @@ describe('createTowerMaterial', () => {
     expect(mat.uniforms.ambientIntensity).toBeDefined();
     expect(mat.uniforms.emissiveIntensity).toBeDefined();
     expect(mat.uniforms.sparkleTime).toBeDefined();
-    mat.dispose();
+    mat!.dispose();
   });
 });
 
@@ -62,29 +62,29 @@ describe('antennaMaterial', () => {
 
 describe('setNightMode', () => {
   it('sets emissive intensity to non-zero in night mode', () => {
-    const mat = createTowerMaterial();
+    const mat = createTowerMaterial()!;
     setNightMode(mat, true);
     expect(mat.uniforms.emissiveIntensity.value).toBeGreaterThan(0);
     setNightMode(mat, false);
     expect(mat.uniforms.emissiveIntensity.value).toBe(0);
-    mat.dispose();
+    mat!.dispose();
   });
 });
 
 describe('updateSparkle', () => {
   it('accepts elapsed time without throwing', () => {
-    const mat = createTowerMaterial();
+    const mat = createTowerMaterial()!;
     setNightMode(mat, true);
     expect(() => updateSparkle(mat, 5000)).not.toThrow();
-    mat.dispose();
+    mat!.dispose();
   });
 
   it('does nothing when night mode is off', () => {
-    const mat = createTowerMaterial();
+    const mat = createTowerMaterial()!;
     setNightMode(mat, false);
     const before = mat.uniforms.sparkleTime.value;
     updateSparkle(mat, 5000);
     expect(mat.uniforms.sparkleTime.value).toBe(before);
-    mat.dispose();
+    mat!.dispose();
   });
 });

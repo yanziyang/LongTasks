@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { profile } from '../profile';
-import { PLATFORM_HEIGHTS } from '../../constants';
+import { PLATFORM_HEIGHTS, HEIGHT_TOP } from '../../constants';
 
 const DECK_THICKNESS = 1.5;
 const RAIL_THICKNESS = 0.3;
@@ -74,7 +74,7 @@ export function buildPlatforms(materials: THREE.Material[] | THREE.Material, fal
       for (let i = 0; i < positions.count; i++) {
         vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
         vertex.applyMatrix4(matrix);
-        heightRatios[i] = vertex.y / 301;
+        heightRatios[i] = vertex.y / HEIGHT_TOP;
       }
       child.geometry.setAttribute('heightRatio', new THREE.BufferAttribute(heightRatios, 1));
     }

@@ -3,7 +3,8 @@ import { buildTower, TowerBuildResult } from '../tower/Tower';
 import { applyTheme, Theme } from './EnvironmentTheme';
 import { createCamera, resetCamera, createAutoRotation, updateAutoRotation, AutoRotationState } from './CameraRig';
 import { createOrbitControls } from '../controls/OrbitControlsSetup';
-import { updateSparkle } from '../tower/materials';
+import { updateSparkle, updateLightDirection } from '../tower/materials';
+import { CAMERA_TARGET, SCENE_SCALE } from '../constants';
 
 export class Viewer {
   private renderer: THREE.WebGLRenderer;
@@ -40,9 +41,19 @@ export class Viewer {
 
     applyTheme(this.scene, this.renderer, 'day', this.towerResult.isFallback ? undefined : this.towerResult.material as THREE.ShaderMaterial);
 
+    this.setupLightDirection();
     this.setupDragDetection();
     this.setupContextLost();
     this.setupResize();
+  }
+
+  private setupLightDirection(): void {
+    if (this.towerResult.isFallback) return;
+    const mat = this.towerResult.material as THREE.ShaderMaterial;
+    const sun = this.scene.children.find((c) => c instanceof THREE.DirectionalLight) as THREE.DirectionalLight;
+    if (sun && mat.uniforms) {
+      updateLightDirection(mat, sun);
+    }
   }
 
   private setupLights(): void {
@@ -122,17 +133,9 @@ export class Viewer {
 
       this.controls.update();
 
-      if (!this.towerResult.isFallback) {
+      if (!this.towerResult.isFallback && this.currentTheme === 'night') {
         const mat = this.towerResult.material as THREE.ShaderMaterial;
-        const sun = this.scene.children.find((c) => c instanceof THREE.DirectionalLight) as THREE.DirectionalLight;
-        if (sun && mat.uniforms) {
-          const dir = new THREE.Vector3();
-          sun.getWorldDirection(dir);
-          mat.uniforms.lightDirection.value.copy(dir);
-        }
-        if (this.currentTheme === 'night') {
-          updateSparkle(mat, this.sparkleStartTime > 0 ? performance.now() - this.sparkleStartTime : 0);
-        }
+        updateSparkle(mat, this.sparkleStartTime > 0 ? performance.now() - this.sparkleStartTime : 0);
       }
 
       this.renderer.render(this.scene, this.camera);
@@ -157,7 +160,7 @@ export class Viewer {
 
   resetCamera(): void {
     resetCamera(this.camera);
-    this.controls.target.set(0, 1.5, 0);
+    this.controls.target.set(0, CAMERA_TARGET.y * SCENE_SCALE, 0);
     this.controls.update();
   }
 

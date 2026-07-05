@@ -102,7 +102,7 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-export function createTowerMaterial(): THREE.ShaderMaterial {
+export function createTowerMaterial(): THREE.ShaderMaterial | null {
   try {
     const mat = new THREE.ShaderMaterial({
       vertexShader,
@@ -123,7 +123,7 @@ export function createTowerMaterial(): THREE.ShaderMaterial {
     });
     return mat;
   } catch {
-    return new THREE.ShaderMaterial({ vertexShader: 'void main() {}', fragmentShader: 'void main() {}' });
+    return null;
   }
 }
 

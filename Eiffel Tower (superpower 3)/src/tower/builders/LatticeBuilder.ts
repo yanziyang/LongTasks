@@ -3,6 +3,7 @@ import { profile } from '../profile';
 import { HEIGHT_TOP, RING_COUNT, PLATFORM_HEIGHTS } from '../../constants';
 
 const LATTICE_RADIUS = 0.4;
+const LATTICE_CYLINDER_GEO = new THREE.CylinderGeometry(1, 1, 1, 6);
 
 function cornerPoints(corner: number): THREE.Vector3[] {
   const pts: THREE.Vector3[] = [];
@@ -22,11 +23,12 @@ function sectionForHeight(h: number): number {
   return 2;
 }
 
-function beamBetween(a: THREE.Vector3, b: THREE.Vector3, mat: THREE.Material, radius: number): THREE.Mesh {
+function beamBetween(a: THREE.Vector3, b: THREE.Vector3, mat: THREE.Material, _radius: number): THREE.Mesh | null {
   const dir = new THREE.Vector3().subVectors(b, a);
   const len = dir.length();
-  if (len < 0.01) return new THREE.Mesh();
-  const geo = new THREE.CylinderGeometry(radius, radius, len, 6);
+  if (len < 0.01) return null;
+  const geo = LATTICE_CYLINDER_GEO.clone();
+  geo.scale(1, len, 1);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(a).add(b).multiplyScalar(0.5);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
@@ -58,11 +60,14 @@ export function buildLattice(materials: THREE.Material[] | THREE.Material, fallb
         ? (materials as THREE.Material[])[section]
         : (materials as THREE.Material);
 
-      group.add(beamBetween(botA, topB, mat, LATTICE_RADIUS));
-      group.add(beamBetween(botB, topA, mat, LATTICE_RADIUS));
+      const b1 = beamBetween(botA, topB, mat, LATTICE_RADIUS);
+      const b2 = beamBetween(botB, topA, mat, LATTICE_RADIUS);
+      if (b1) group.add(b1);
+      if (b2) group.add(b2);
 
       if (section === 0 || i % 2 === 0) {
-        group.add(beamBetween(botA, botB, mat, LATTICE_RADIUS));
+        const b3 = beamBetween(botA, botB, mat, LATTICE_RADIUS);
+        if (b3) group.add(b3);
       }
     }
   }
