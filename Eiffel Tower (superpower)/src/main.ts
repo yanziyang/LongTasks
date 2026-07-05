@@ -65,3 +65,8 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+renderer.domElement.addEventListener('webglcontextlost', () => {
+  console.error('WebGL context lost — renderer stopped.');
+  renderer.setAnimationLoop(null);
+});
