@@ -6,6 +6,8 @@ import { createLoadingOverlay } from './ui/LoadingOverlay';
 export class App {
   private viewer: Viewer;
   private loading: HTMLElement;
+  private isDay = true;
+  private infoOverlay: HTMLElement | null = null;
 
   constructor(private container: HTMLElement) {
     this.container.style.position = 'relative';
@@ -19,16 +21,20 @@ export class App {
   }
 
   private setupUI(): void {
-    let isDay = true;
     const themeToggle = createThemeToggle(() => {
-      isDay = !isDay;
-      this.viewer.setTheme(isDay ? 'day' : 'night');
+      this.toggleTheme();
     });
     this.container.appendChild(themeToggle);
 
     const { element: info, toggle: infoToggle } = createInfoOverlay();
+    this.infoOverlay = info;
     this.container.appendChild(info);
     this.container.appendChild(infoToggle);
+  }
+
+  private toggleTheme(): void {
+    this.isDay = !this.isDay;
+    this.viewer.setTheme(this.isDay ? 'day' : 'night');
   }
 
   private setupKeyboard(): void {
@@ -38,9 +44,13 @@ export class App {
           this.viewer.resetCamera();
           break;
         case 't':
-          this.viewer.setTheme('day');
+          this.toggleTheme();
           break;
         case 'i':
+          if (this.infoOverlay) {
+            this.infoOverlay.style.display =
+              this.infoOverlay.style.display === 'none' ? 'block' : 'none';
+          }
           break;
       }
     });

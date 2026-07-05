@@ -28,6 +28,8 @@ export class Viewer {
     this.setupGround();
     this.scene.add(buildTower());
     applyTheme(this.scene, this.renderer, 'day');
+
+    this.setupContextLost();
   }
 
   private setupLights(): void {
@@ -46,12 +48,24 @@ export class Viewer {
 
   private setupGround(): void {
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(1200, 1200),
+      new THREE.CircleGeometry(600, 64),
       new THREE.ShadowMaterial({ opacity: 0.3 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
+  }
+
+  private setupContextLost(): void {
+    this.renderer.domElement.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      cancelAnimationFrame(this.rafId);
+      const msg = document.createElement('div');
+      msg.style.cssText =
+        'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;background:rgba(0,0,0,0.7);z-index:100;';
+      msg.textContent = 'WebGL context lost. Please reload the page.';
+      this.container.appendChild(msg);
+    });
   }
 
   start(): void {
@@ -75,6 +89,7 @@ export class Viewer {
 
   dispose(): void {
     cancelAnimationFrame(this.rafId);
+    this.controls.dispose();
     this.renderer.dispose();
     this.container.removeChild(this.renderer.domElement);
   }
