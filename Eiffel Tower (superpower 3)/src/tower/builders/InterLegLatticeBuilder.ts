@@ -51,9 +51,9 @@ function legInnerChordAtHeight(corner: number, h: number): THREE.Vector3 {
   );
 }
 
-function sectionForHeight(h: number): number {
-  if (h < PLATFORM_HEIGHTS[0]) return 0;
-  if (h < PLATFORM_HEIGHTS[1]) return 1;
+function densityTier(h: number): number {
+  if (h < PLATFORM_HEIGHTS[1]) return 0;
+  if (h < PLATFORM_HEIGHTS[2]) return 1;
   return 2;
 }
 
@@ -82,10 +82,11 @@ function buildBodyLattice(mat: THREE.Material): THREE.Group {
     for (let bay = 0; bay < bayCount; bay++) {
       const h0 = LEG_SECTION_HEIGHT + bay * BODY_BAY_HEIGHT;
       const h1 = LEG_SECTION_HEIGHT + (bay + 1) * BODY_BAY_HEIGHT;
-      const section = sectionForHeight(h0);
+      const tier = densityTier(h0);
 
       let skip = false;
-      if (section === 2) skip = bay % 3 !== 0;
+      if (tier === 1) skip = bay % 2 === 1;
+      if (tier === 2) skip = bay % 3 !== 0;
       if (skip) continue;
 
       const botA = cornerPoint(a, h0);
@@ -93,7 +94,7 @@ function buildBodyLattice(mat: THREE.Material): THREE.Group {
       const topA = cornerPoint(a, h1);
       const topB = cornerPoint(b, h1);
 
-      if (section === 1) {
+      if (tier === 0) {
         const d1 = beamBetween(botA, topB, mat, BRACE_RADIUS);
         const d2 = beamBetween(botB, topA, mat, BRACE_RADIUS);
         if (d1) group.add(d1);
@@ -115,7 +116,7 @@ function buildBodyLattice(mat: THREE.Material): THREE.Group {
         const k2 = beamBetween(midB, topA, mat, BRACE_RADIUS);
         if (k1) group.add(k1);
         if (k2) group.add(k2);
-      } else if (section === 2) {
+      } else if (tier === 1) {
         const d1 = beamBetween(botA, topB, mat, BRACE_RADIUS);
         const d2 = beamBetween(botB, topA, mat, BRACE_RADIUS);
         if (d1) group.add(d1);

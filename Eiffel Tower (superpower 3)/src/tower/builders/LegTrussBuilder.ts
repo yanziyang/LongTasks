@@ -138,6 +138,8 @@ export function buildLegTrusses(materials: THREE.Material[] | THREE.Material, fa
     group.add(leg);
   }
 
+  group.updateMatrixWorld();
+
   group.traverse((child) => {
     if (child instanceof THREE.Mesh && child.geometry && child.geometry.attributes.position) {
       const positions = child.geometry.attributes.position;
