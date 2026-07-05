@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { profile } from './profile';
-import { dayMaterial } from './materials';
-import { HEIGHT_TOP, RING_COUNT, SCENE_SCALE } from '../constants';
+import { dayMaterial, antennaMaterial } from './materials';
+import { HEIGHT_TOP, RING_COUNT, SCENE_SCALE, PLATFORM_HEIGHTS, ANTENNA_HEIGHT } from '../constants';
 
 const PIER_RADIUS = 1.2;
 const LATTICE_RADIUS = 0.4;
@@ -68,6 +68,23 @@ export function createTower(): THREE.Group {
       group.add(beamBetween(botA, botB, dayMaterial, LATTICE_RADIUS));
     }
   }
+
+  for (const h of PLATFORM_HEIGHTS) {
+    const w = profile(h);
+    const slab = new THREE.Mesh(
+      new THREE.BoxGeometry(2 * w, 1.5, 2 * w),
+      dayMaterial,
+    );
+    slab.position.y = h;
+    group.add(slab);
+  }
+
+  const antenna = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.6, 1.2, ANTENNA_HEIGHT, 8),
+    antennaMaterial,
+  );
+  antenna.position.y = HEIGHT_TOP + ANTENNA_HEIGHT / 2;
+  group.add(antenna);
 
   group.traverse((o) => {
     const m = o as THREE.Mesh;
