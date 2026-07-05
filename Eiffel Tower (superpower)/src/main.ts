@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createTower } from './tower/geometry';
 import { createControls } from './scene/Controls';
 import { Lighting } from './scene/Lighting';
+import { createOverlay } from './ui/Overlay';
 
 const app = document.getElementById('app')!;
 
@@ -41,6 +42,8 @@ scene.add(ground);
 
 const tower = createTower();
 scene.add(tower);
+
+createOverlay(app);
 
 renderer.setAnimationLoop(() => {
   const now = performance.now();
