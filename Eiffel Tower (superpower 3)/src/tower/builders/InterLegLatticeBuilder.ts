@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { profile } from '../profile';
 import {
-  BASE_HALF_WIDTH,
   HEIGHT_TOP,
   LEG_SECTION_HEIGHT,
   BODY_BAY_HEIGHT,
@@ -86,7 +85,6 @@ function buildBodyLattice(mat: THREE.Material): THREE.Group {
       const section = sectionForHeight(h0);
 
       let skip = false;
-      if (section === 1) skip = bay % 2 === 1;
       if (section === 2) skip = bay % 3 !== 0;
       if (skip) continue;
 
@@ -95,7 +93,7 @@ function buildBodyLattice(mat: THREE.Material): THREE.Group {
       const topA = cornerPoint(a, h1);
       const topB = cornerPoint(b, h1);
 
-      if (section === 0) {
+      if (section === 1) {
         const d1 = beamBetween(botA, topB, mat, BRACE_RADIUS);
         const d2 = beamBetween(botB, topA, mat, BRACE_RADIUS);
         if (d1) group.add(d1);
@@ -117,7 +115,7 @@ function buildBodyLattice(mat: THREE.Material): THREE.Group {
         const k2 = beamBetween(midB, topA, mat, BRACE_RADIUS);
         if (k1) group.add(k1);
         if (k2) group.add(k2);
-      } else if (section === 1) {
+      } else if (section === 2) {
         const d1 = beamBetween(botA, topB, mat, BRACE_RADIUS);
         const d2 = beamBetween(botB, topA, mat, BRACE_RADIUS);
         if (d1) group.add(d1);
@@ -245,6 +243,7 @@ export function buildInterLegLattice(materials: THREE.Material[] | THREE.Materia
   group.add(buildBodyLattice(mat));
   group.add(buildArchPanels(mat));
 
+  group.updateMatrixWorld();
   group.traverse((child) => {
     if (child instanceof THREE.Mesh && child.geometry && child.geometry.attributes.position) {
       const positions = child.geometry.attributes.position;
