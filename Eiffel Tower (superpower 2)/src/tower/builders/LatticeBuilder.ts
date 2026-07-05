@@ -6,7 +6,29 @@ export interface LatticeSegment {
   end: THREE.Vector3;
 }
 
+function validateSegment(segment: LatticeSegment, index: number): void {
+  if (!segment.start || !(segment.start instanceof THREE.Vector3)) {
+    throw new Error(`segment[${index}].start must be a Vector3 instance, got ${segment.start}`);
+  }
+  if (!segment.end || !(segment.end instanceof THREE.Vector3)) {
+    throw new Error(`segment[${index}].end must be a Vector3 instance, got ${segment.end}`);
+  }
+}
+
 export function buildLattice(segments: LatticeSegment[], memberSize: number): THREE.InstancedMesh {
+  if (typeof memberSize !== 'number' || Number.isNaN(memberSize)) {
+    throw new Error(`memberSize must be a number, got ${memberSize}`);
+  }
+  if (memberSize <= 0) {
+    throw new Error(`memberSize must be a positive number, got ${memberSize}`);
+  }
+  if (!Array.isArray(segments)) {
+    throw new Error(`segments must be an array, got ${typeof segments}`);
+  }
+  for (let i = 0; i < segments.length; i++) {
+    validateSegment(segments[i], i);
+  }
+
   if (segments.length === 0) {
     return new THREE.InstancedMesh(new THREE.BoxGeometry(), createIronMaterial(), 0);
   }
