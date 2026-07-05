@@ -1,3 +1,56 @@
+### Task 6: LatticeBuilder — Section-Aware X-Bracing
+
+**Files:**
+- Create: `src/tower/builders/LatticeBuilder.ts`
+- Modify: `tests/builders.test.ts` — add LatticeBuilder tests
+
+**Interfaces:**
+- Consumes: `profile(h)`, `HEIGHT_TOP`, `RING_COUNT`, `PLATFORM_HEIGHTS`
+- Produces: `buildLattice(mat: THREE.Material, fallback: boolean): THREE.Group`
+
+The `cornerPoints` function is duplicated in LatticeBuilder.ts (keeps builders independent).
+
+- [ ] **Step 1: Add LatticeBuilder tests to tests/builders.test.ts**
+
+```typescript
+// Append these tests to the existing file
+
+import { buildLattice } from '../src/tower/builders/LatticeBuilder';
+
+describe('buildLattice', () => {
+  it('returns a Group', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLattice(mats, true);
+    expect(result).toBeInstanceOf(THREE.Group);
+  });
+
+  it('contains many lattice members', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLattice(mats, true);
+    const meshCount = countMeshes(result);
+    expect(meshCount).toBeGreaterThan(100);
+  });
+
+  it('has non-zero bounding box', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLattice(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+```bash
+npm test
+```
+
+Expected: FAIL — `buildLattice` not exported.
+
+- [ ] **Step 3: Create src/tower/builders/LatticeBuilder.ts**
+
+```typescript
 import * as THREE from 'three';
 import { profile } from '../profile';
 import { HEIGHT_TOP, RING_COUNT, PLATFORM_HEIGHTS } from '../../constants';
@@ -73,12 +126,11 @@ export function buildLattice(materials: THREE.Material[] | THREE.Material, fallb
       if (geo.attributes.position) {
         const positions = geo.attributes.position;
         const heightRatios = new Float32Array(positions.count);
-        const vertex = new THREE.Vector3();
-        const matrix = child.matrixWorld;
+        const worldPos = new THREE.Vector3();
+        child.getWorldPosition(worldPos);
         for (let i = 0; i < positions.count; i++) {
-          vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
-          vertex.applyMatrix4(matrix);
-          heightRatios[i] = vertex.y / HEIGHT_TOP;
+          const localY = positions.getY(i);
+          heightRatios[i] = (worldPos.y + localY) / HEIGHT_TOP;
         }
         geo.setAttribute('heightRatio', new THREE.BufferAttribute(heightRatios, 1));
       }
@@ -87,3 +139,19 @@ export function buildLattice(materials: THREE.Material[] | THREE.Material, fallb
 
   return group;
 }
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+```bash
+npm test
+```
+
+Expected: PASS — all tests pass.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/tower/builders/LatticeBuilder.ts tests/builders.test.ts
+git commit -m "feat: add LatticeBuilder with section-aware X-bracing density"
+```

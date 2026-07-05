@@ -1,0 +1,5 @@
+Task 1: complete (commits 3cf7ec7..c349847, review clean)
+Task 2: complete (commits c349847..36d419e, review clean)
+Task 3: complete (commits 36d419e..b8d7092, review clean)
+Task 4: complete (commits b8d7092..0371dec, review clean after fix)
+Task 5: complete (commits 0371dec..f302bad, review clean)
