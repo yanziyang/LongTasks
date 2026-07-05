@@ -32,3 +32,27 @@ function countMeshes(obj: THREE.Object3D): number {
   });
   return count;
 }
+
+import { buildLattice } from '../src/tower/builders/LatticeBuilder';
+
+describe('buildLattice', () => {
+  it('returns a Group', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLattice(mats, true);
+    expect(result).toBeInstanceOf(THREE.Group);
+  });
+
+  it('contains many lattice members', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLattice(mats, true);
+    const meshCount = countMeshes(result);
+    expect(meshCount).toBeGreaterThan(100);
+  });
+
+  it('has non-zero bounding box', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLattice(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
+  });
+});
