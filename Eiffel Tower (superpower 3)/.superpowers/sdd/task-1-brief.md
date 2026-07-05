@@ -1,125 +1,105 @@
-### Task 1: Project Scaffolding
+### Task 1: Add New Constants
 
 **Files:**
-- Create: `package.json`
-- Create: `tsconfig.json`
-- Create: `vite.config.ts`
-- Create: `vitest.config.ts`
-- Create: `index.html`
-- Create: `.gitignore`
+- Modify: `src/constants.ts`
+- Modify: `tests/constants.test.ts`
 
 **Interfaces:**
-- Produces: Vite dev server on `npm run dev`, Vitest on `npm test`, TypeScript strict mode
+- Produces: `LEG_TRUSS_WIDTH_BASE`, `LEG_TRUSS_WIDTH_TOP`, `LEG_TRUSS_BAY_HEIGHT`, `LEG_SECTION_HEIGHT`, `BODY_BAY_HEIGHT`, `ARCH_MAX_HEIGHT`, `ARCH_SEGMENTS`, `ARCH_RING_SPACING`
 
-- [ ] **Step 1: Create package.json**
+- [ ] **Step 1: Add tests for new constants to tests/constants.test.ts**
 
-```json
-{
-  "name": "eiffel-tower",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --open",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "three": "^0.169.0"
-  },
-  "devDependencies": {
-    "@types/three": "^0.169.0",
-    "jsdom": "^29.1.1",
-    "typescript": "^5.5.0",
-    "vite": "^5.4.0",
-    "vitest": "^2.1.0"
-  }
-}
-```
-
-- [ ] **Step 2: Create tsconfig.json**
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "useDefineForClassFields": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "skipLibCheck": true,
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
-  },
-  "include": ["src", "tests"]
-}
-```
-
-- [ ] **Step 3: Create vite.config.ts**
+Append this test block to the existing file (after the last `it` block, before the closing `});` of the `describe('constants', ...)` block — or as a new describe block at the end of the file):
 
 ```typescript
-import { defineConfig } from 'vite';
+describe('engineering-model constants', () => {
+  it('has positive leg truss width at base', async () => {
+    const { LEG_TRUSS_WIDTH_BASE } = await import('../src/constants');
+    expect(LEG_TRUSS_WIDTH_BASE).toBeGreaterThan(0);
+  });
 
-export default defineConfig({
-  base: './',
+  it('leg truss width narrows from base to top', async () => {
+    const { LEG_TRUSS_WIDTH_BASE, LEG_TRUSS_WIDTH_TOP } = await import('../src/constants');
+    expect(LEG_TRUSS_WIDTH_TOP).toBeLessThan(LEG_TRUSS_WIDTH_BASE);
+    expect(LEG_TRUSS_WIDTH_TOP).toBeGreaterThan(0);
+  });
+
+  it('has positive leg truss bay height', async () => {
+    const { LEG_TRUSS_BAY_HEIGHT } = await import('../src/constants');
+    expect(LEG_TRUSS_BAY_HEIGHT).toBeGreaterThan(0);
+  });
+
+  it('leg section height equals first platform height', async () => {
+    const { LEG_SECTION_HEIGHT, PLATFORM_HEIGHTS } = await import('../src/constants');
+    expect(LEG_SECTION_HEIGHT).toBe(PLATFORM_HEIGHTS[0]);
+  });
+
+  it('has positive body bay height', async () => {
+    const { BODY_BAY_HEIGHT } = await import('../src/constants');
+    expect(BODY_BAY_HEIGHT).toBeGreaterThan(0);
+  });
+
+  it('has positive arch max height less than leg section height', async () => {
+    const { ARCH_MAX_HEIGHT, LEG_SECTION_HEIGHT } = await import('../src/constants');
+    expect(ARCH_MAX_HEIGHT).toBeGreaterThan(0);
+    expect(ARCH_MAX_HEIGHT).toBeLessThan(LEG_SECTION_HEIGHT);
+  });
+
+  it('has positive arch segments', async () => {
+    const { ARCH_SEGMENTS } = await import('../src/constants');
+    expect(ARCH_SEGMENTS).toBeGreaterThan(4);
+  });
+
+  it('has positive arch ring spacing', async () => {
+    const { ARCH_RING_SPACING } = await import('../src/constants');
+    expect(ARCH_RING_SPACING).toBeGreaterThan(0);
+  });
 });
 ```
 
-- [ ] **Step 4: Create vitest.config.ts**
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `npm test`
+Expected: FAIL — the new constants are not exported.
+
+- [ ] **Step 3: Add the new constants to src/constants.ts**
+
+Add these lines after the existing `AUTO_ROTATION_RECOVERY_S` line and before the validation block:
 
 ```typescript
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  resolve: {
-    extensions: ['.ts', '.js'],
-  },
-});
+export const LEG_TRUSS_WIDTH_BASE = 9.0;
+export const LEG_TRUSS_WIDTH_TOP = 3.5;
+export const LEG_TRUSS_BAY_HEIGHT = 3.0;
+export const LEG_SECTION_HEIGHT = 57;
+export const BODY_BAY_HEIGHT = 4.0;
+export const ARCH_MAX_HEIGHT = 45;
+export const ARCH_SEGMENTS = 30;
+export const ARCH_RING_SPACING = 2.0;
 ```
 
-- [ ] **Step 5: Create index.html**
+Add validation lines after the existing validation block:
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eiffel Tower</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-  </style>
-</head>
-<body>
-  <div id="app" style="width:100%;height:100%;position:relative;"></div>
-  <script type="module" src="/src/main.ts"></script>
-</body>
-</html>
+```typescript
+if (LEG_TRUSS_WIDTH_BASE <= 0) throw new Error('LEG_TRUSS_WIDTH_BASE must be positive');
+if (LEG_TRUSS_WIDTH_TOP <= 0) throw new Error('LEG_TRUSS_WIDTH_TOP must be positive');
+if (LEG_TRUSS_WIDTH_TOP >= LEG_TRUSS_WIDTH_BASE) throw new Error('LEG_TRUSS_WIDTH_TOP must be less than LEG_TRUSS_WIDTH_BASE');
+if (LEG_TRUSS_BAY_HEIGHT <= 0) throw new Error('LEG_TRUSS_BAY_HEIGHT must be positive');
+if (LEG_SECTION_HEIGHT <= 0) throw new Error('LEG_SECTION_HEIGHT must be positive');
+if (BODY_BAY_HEIGHT <= 0) throw new Error('BODY_BAY_HEIGHT must be positive');
+if (ARCH_MAX_HEIGHT <= 0) throw new Error('ARCH_MAX_HEIGHT must be positive');
+if (ARCH_MAX_HEIGHT >= LEG_SECTION_HEIGHT) throw new Error('ARCH_MAX_HEIGHT must be less than LEG_SECTION_HEIGHT');
+if (ARCH_SEGMENTS < 4) throw new Error('ARCH_SEGMENTS must be at least 4');
+if (ARCH_RING_SPACING <= 0) throw new Error('ARCH_RING_SPACING must be positive');
 ```
 
-- [ ] **Step 6: Create .gitignore**
+- [ ] **Step 4: Run test to verify it passes**
 
-```
-node_modules/
-dist/
-```
+Run: `npm test`
+Expected: PASS — all existing tests plus 8 new constants tests pass.
 
-- [ ] **Step 7: Install dependencies and verify toolchain**
+- [ ] **Step 5: Commit**
 
 ```bash
-npm install
-npm test
-```
-
-Expected: "No test files found" — Vitest runs but finds nothing.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add package.json package-lock.json tsconfig.json vite.config.ts vitest.config.ts index.html .gitignore
-git commit -m "chore: scaffold project with Vite + TypeScript + Three.js + Vitest"
+git add src/constants.ts tests/constants.test.ts
+git commit -m "feat: add engineering-model constants for leg trusses and arch panels"
 ```

@@ -1,7 +1,7 @@
 Reference
 https://x.com/nicbstme/status/2072420293826781385
 
-------------------------------------------------------------
+============================================================================
 Eiffel Tower (superpower 1)
 
 Prompt:
@@ -11,7 +11,7 @@ Methodology: superpowers
 LLM model for planning: GLM-5.2 Max
 LLM model for coding: Mimo-2.5 Default
 
-------------------------------------------------------------
+============================================================================
 Eiffel Tower (superpower 2)
 
 Prompt:
@@ -21,7 +21,7 @@ Methodology: superpowers
 LLM model for planning: Kimi K2.7 Code
 LLM model for coding: Mimo-2.5-pro Default
 
-------------------------------------------------------------
+============================================================================
 Eiffel Tower (superpower 3)
 
 Prompt:
@@ -34,3 +34,12 @@ Drag to orbit, scroll or pinch to zoom, and it slowly rotates when idle. Toggle 
 Methodology: superpowers
 LLM model for planning: DeepSeek V4 Pro Max
 LLM model for coding: DeepSeek V4 Flash Max
+
+---------------------------------------------------------------------
+
+Prompt:
+/brainstorming Do not approximate the tower using stacked horizontal layers or extruded profiles. Construct the structure using four independent curved truss legs connected by thousands of diagonal lattice members. Every structural bay should resemble the real Eiffel Tower's riveted wrought-iron framework. The result should look like an engineering model rather than a sculptural approximation.
+
+Methodology: superpowers
+LLM model for planning: GLM-5.2 Max
+LLM model for coding: DeepSeek V4 Pro Default

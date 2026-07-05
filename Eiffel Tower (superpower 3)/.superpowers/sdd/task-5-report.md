@@ -1,44 +1,17 @@
-# Task 5 Report: LegBuilder — Four Curved Edge Beams
+### Task 5 Report: Remove Old Builders and Clean Up Tests
 
-## What was implemented
+**Status:** COMPLETE
 
-- Created `src/tower/builders/` directory
-- Created `src/tower/builders/LegBuilder.ts` with `buildLegs()` function
-- Created `tests/builders.test.ts` with 3 tests
+**Commit:** `df803e8` — `refactor: remove old LegBuilder, LatticeBuilder, ArchBuilder and their tests`
 
-## TDD Evidence
+**Changes:**
+- Deleted `src/tower/builders/LegBuilder.ts`
+- Deleted `src/tower/builders/LatticeBuilder.ts`
+- Deleted `src/tower/builders/ArchBuilder.ts`
+- Rewrote `tests/builders.test.ts` to keep only PlatformBuilder, CabinBuilder, and AntennaBuilder tests (7 tests total)
 
-### RED
-- Before implementation: `tests/builders.test.ts` failed to load because `src/tower/builders/LegBuilder.ts` did not exist
+**Test Summary:** 7/7 passed (vitest, file: tests/builders.test.ts)
 
-### GREEN
-- After implementation: `tests/builders.test.ts` — 3 tests passing
-- All 36 tests in suite pass
+**Build Result:** PASS (`tsc && vite build` succeeded, 23 modules transformed)
 
-## Files changed
-
-| File | Action |
-|------|--------|
-| `src/tower/builders/LegBuilder.ts` | Created |
-| `tests/builders.test.ts` | Created |
-
-## Test results
-
-```
- ✓ tests/builders.test.ts (3 tests)  32ms
- ✓ tests/profile.test.ts (8 tests)   13ms
- ✓ tests/materials.test.ts (9 tests) 10ms
- ✓ tests/constants.test.ts (8 tests) 129ms
- ✓ tests/constants.test.js (8 tests) 78ms
-
- Test Files  5 passed (5)
-      Tests  36 passed (36)
-```
-
-## Self-review findings
-
-- `buildLegs` accepts both `THREE.Material[] | THREE.Material` and uses `fallback` flag to decide material assignment
-- Each leg is a `TubeGeometry` along a `CatmullRomCurve3` traced through `RING_COUNT` profile points
-- `heightRatio` attribute is computed per-vertex for the shader material (supports gradient coloring)
-- Corner point logic uses sign conventions: corners 0 (--), 1 (+-), 2 (++), 3 (-+) in (x,z) plane
-- PIER_RADIUS of 1.2 creates reasonable tubular leg thickness for a 300m tower
+**Concerns:** None

@@ -1,132 +1,97 @@
-### Task 3: Tower Profile (Pure Math)
+### Task 3: Create InterLegLatticeBuilder — Merged Body + Arch Panels
 
 **Files:**
-- Create: `src/tower/profile.ts`
-- Create: `tests/profile.test.ts`
+- Create: `src/tower/builders/InterLegLatticeBuilder.ts`
+- Create: `tests/inter-leg-lattice.test.ts`
 
 **Interfaces:**
-- Consumes: `BASE_HALF_WIDTH`, `PLATFORM_HALF_WIDTHS`, `HEIGHT_TOP` from `src/constants.ts`
-- Produces: `profile(h: number): number` — returns half-width at height h
-- Produces: `CALIBRATION: { k: number; wTop: number; wBase: number }` — solved curve parameters
+- Produces: `buildInterLegLattice(materials: THREE.Material[] | THREE.Material, fallback: boolean): THREE.Group`
 
-- [ ] **Step 1: Create tests/profile.test.ts**
+- [ ] **Step 1: Create tests/inter-leg-lattice.test.ts**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { profile, CALIBRATION } from '../src/tower/profile';
+import * as THREE from 'three';
+import { buildInterLegLattice } from '../src/tower/builders/InterLegLatticeBuilder';
+import { createTowerMaterialFallback } from '../src/tower/materials';
 
-describe('profile w(h)', () => {
-  it('returns base half-width at h=0', () => {
-    expect(profile(0)).toBeCloseTo(62.5, 6);
+function countMeshes(obj: THREE.Object3D): number {
+  let count = 0;
+  obj.traverse((child) => {
+    if (child instanceof THREE.Mesh) count++;
+  });
+  return count;
+}
+
+describe('buildInterLegLattice', () => {
+  it('returns a Group', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildInterLegLattice(mats, true);
+    expect(result).toBeInstanceOf(THREE.Group);
   });
 
-  it('returns first platform width at h=57 (calibration anchor)', () => {
-    expect(profile(57)).toBeCloseTo(32.5, 4);
+  it('contains many meshes (body lattice + arch panels)', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildInterLegLattice(mats, true);
+    expect(countMeshes(result)).toBeGreaterThan(500);
   });
 
-  it('returns third platform width at h=276 (calibration anchor)', () => {
-    expect(profile(276)).toBeCloseTo(9, 3);
+  it('has non-zero bounding box', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildInterLegLattice(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
   });
 
-  it('passes through h=115 verification point within tolerance', () => {
-    const w = profile(115);
-    expect(w).toBeGreaterThan(16);
-    expect(w).toBeLessThan(22);
+  it('bounding box spans from ground to near HEIGHT_TOP', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildInterLegLattice(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.min.y).toBeLessThan(5);
+    expect(box.max.y).toBeGreaterThan(250);
   });
 
-  it('is monotonically decreasing', () => {
-    let prev = profile(0);
-    for (let h = 5; h <= 300; h += 5) {
-      const cur = profile(h);
-      expect(cur).toBeLessThan(prev);
-      prev = cur;
-    }
-  });
-
-  it('never returns NaN or Infinity', () => {
-    for (let h = 0; h <= 300; h += 3) {
-      expect(Number.isFinite(profile(h))).toBe(true);
-    }
-  });
-
-  it('throws for heights outside valid range', () => {
-    expect(() => profile(-1)).toThrow();
-    expect(() => profile(301)).toThrow();
-  });
-
-  it('calibration parameters are positive', () => {
-    expect(CALIBRATION.k).toBeGreaterThan(0);
-    expect(CALIBRATION.wTop).toBeGreaterThan(0);
-    expect(CALIBRATION.wBase).toBe(62.5);
+  it('has heightRatio attribute on meshes', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildInterLegLattice(mats, true);
+    let foundAttribute = false;
+    result.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.geometry.attributes.heightRatio) {
+        foundAttribute = true;
+      }
+    });
+    expect(foundAttribute).toBe(true);
   });
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — `npm test` → FAIL
 
-```bash
-npm test
+- [ ] **Step 3: Create src/tower/builders/InterLegLatticeBuilder.ts**
+
+The full implementation is in the plan at `docs/superpowers/plans/2026-07-05-engineering-model-geometry-rework.md` starting at line 469. Read lines 469-735 from that file and implement verbatim. The implementation contains:
+
+- `beamBetween` helper (same pattern as LegTrussBuilder)
+- `cornerPoint(corner, h)` — profile curve position
+- `legInnerChordAtHeight(corner, h)` — inner chord of a leg truss at height h
+- `sectionForHeight(h)` — returns 0/1/2 based on platform heights
+- `buildCornerChords(mat)` — 4 TubeGeometry corner chords from 57m to 300m
+- `buildBodyLattice(mat)` — section-density-varying lattice on 4 faces, 57-300m
+- `buildArchPanels(mat)` — curved arch panels with Bezier bottom chord, verticals, diagonals, double-ring
+- `buildInterLegLattice(materials, fallback)` — assembler + heightRatio traverse
+
+The code has these imports from constants:
+```
+LEG_SECTION_HEIGHT, BODY_BAY_HEIGHT, PLATFORM_HEIGHTS, ARCH_MAX_HEIGHT, ARCH_SEGMENTS, ARCH_RING_SPACING, LEG_TRUSS_WIDTH_BASE, LEG_TRUSS_WIDTH_TOP
 ```
 
-Expected: FAIL — `src/tower/profile.ts` does not exist.
+And constants: `CHORD_RADIUS = 0.5, STRUT_RADIUS = 0.3, BRACE_RADIUS = 0.25, ARCH_TUBE_RADIUS = 0.35`
 
-- [ ] **Step 3: Create src/tower/profile.ts**
-
-```typescript
-import { BASE_HALF_WIDTH, PLATFORM_HALF_WIDTHS, HEIGHT_TOP } from '../constants';
-
-const wBase = BASE_HALF_WIDTH;
-const h1 = 57;
-const w1 = PLATFORM_HALF_WIDTHS[57];
-const h2 = 276;
-const w2 = PLATFORM_HALF_WIDTHS[276];
-
-function evalK(k: number): { err: number; wTop: number } {
-  const A = Math.exp(-k * h1);
-  const wTop = (w1 - wBase * A) / (1 - A);
-  const pred2 = wTop + (wBase - wTop) * Math.exp(-k * h2);
-  return { err: (pred2 - w2) * (pred2 - w2), wTop };
-}
-
-function solveCalibration(): { k: number; wTop: number } {
-  let best = { err: Infinity, k: 0, wTop: 0 };
-  for (let exp = -8; exp <= 2; exp += 0.0005) {
-    const k = Math.pow(10, exp);
-    const { err, wTop } = evalK(k);
-    if (err < best.err) best = { err, k, wTop };
-  }
-  const lo = Math.pow(10, Math.log10(best.k) - 0.001);
-  const hi = Math.pow(10, Math.log10(best.k) + 0.001);
-  for (let k = lo; k <= hi; k += hi * 1e-8) {
-    const { err, wTop } = evalK(k);
-    if (err < best.err) best = { err, k, wTop };
-  }
-  return { k: best.k, wTop: best.wTop };
-}
-
-const { k, wTop } = solveCalibration();
-
-export const CALIBRATION = { k, wTop, wBase };
-
-export function profile(h: number): number {
-  if (h < 0 || h > HEIGHT_TOP) {
-    throw new RangeError(`height ${h} out of range [0, ${HEIGHT_TOP}]`);
-  }
-  return wTop + (wBase - wTop) * Math.exp(-k * h);
-}
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-```bash
-npm test
-```
-
-Expected: PASS — 16 tests pass (8 constants + 8 profile).
+- [ ] **Step 4: Run test** — `npm test` → PASS (>500 meshes expected)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/tower/profile.ts tests/profile.test.ts
-git commit -m "feat: add tower profile with exponential curve calibration"
+git add src/tower/builders/InterLegLatticeBuilder.ts tests/inter-leg-lattice.test.ts
+git commit -m "feat: add InterLegLatticeBuilder with merged body lattice and curved arch panels"
 ```

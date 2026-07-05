@@ -1,51 +1,38 @@
-# Final Review Fix Report
+# Final Fix Report: InterLegLattice Density Tier + LegTruss updateMatrixWorld
 
-## Fixes Applied
+**Status:** Fixed and verified
+**Commit:** `e0da3c7`
+**Date:** 2026-07-05
 
-### Issue 1: Duplicate .js files alongside .ts files
-- Deleted all compiled `.js` files in `src/` and `tests/` that had corresponding `.ts` files
-- Added `"noEmit": true` to `tsconfig.json` to prevent `tsc` from regenerating them
+---
 
-### Issue 2: LatticeBuilder shared geometry
-- Added module-level `LATTICE_CYLINDER_GEO` (shared `CylinderGeometry`)
-- `beamBetween` now clones and scales via `geo.scale(1, len, 1)` instead of creating per-beam geometry
+## Issue 1: Body Lattice Missing Middle Density Tier
 
-### Issue 3: ShaderMaterial catch block
-- Changed `createTowerMaterial()` return type to `THREE.ShaderMaterial | null`
-- Catch block now returns `null` instead of a fallback ShaderMaterial
-- `Tower.ts` updated to check `shaderMat instanceof THREE.ShaderMaterial` instead of checking vertexShader length
+**File:** `src/tower/builders/InterLegLatticeBuilder.ts`
 
-### Issue 4: Hardcoded height-ratio denominators
-- `ArchBuilder.ts`: `heightRatios[i] = vertex.y / HEIGHT_TOP` (was `330`)
-- `PlatformBuilder.ts`: `heightRatios[i] = vertex.y / HEIGHT_TOP` (was `301`)
-- `CabinBuilder.ts`: `heightRatios[i] = vertex.y / HEIGHT_TOP` (was `301`)
-- All import `HEIGHT_TOP` from constants
+**Problem:** The old `sectionForHeight` function returned only two tiers for the body lattice (h < 115 → section 1, h >= 115 → section 2). Section 2 applied the same `bay % 3 !== 0` sparse skip to both 115-276m and 276-300m ranges, meaning the 115-276m range had no dedicated medium-density tier.
 
-### Issue 5: beamBetween returns empty Mesh
-- `beamBetween` in `LatticeBuilder.ts` and `ArchBuilder.ts` now returns `THREE.Mesh | null`
-- Short spans (< 0.01) return `null`
-- Call sites wrapped with `if (mesh) group.add(mesh)` guards
+**Fix:** Replaced `sectionForHeight` with `densityTier` that returns three tiers:
+- **Tier 0** (h < 115m): 6-member dense lattice, all bays — no skip
+- **Tier 1** (115 ≤ h < 276m): 4-member medium lattice, every other bay — `skip = bay % 2 === 1`
+- **Tier 2** (h ≥ 276m): 2-member sparse lattice, every 3rd bay — `skip = bay % 3 !== 0`
 
-### Issue 6: Dead nightModeActive variable
-- No `nightModeActive` variable existed — no action needed
+---
 
-### Issue 7: resetCamera hardcodes target Y
-- `Viewer.ts` `resetCamera()` now uses `CAMERA_TARGET.y * SCENE_SCALE` instead of `1.5`
+## Issue 2: Missing updateMatrixWorld in LegTrussBuilder
 
-### Issue 8: buildCabin hardcodes height 276
-- `CabinBuilder.ts` uses `PLATFORM_HEIGHTS[2]` instead of `276`
+**File:** `src/tower/builders/LegTrussBuilder.ts`
 
-### Issue 9: Light direction uniform updated every frame
-- Removed sun direction update from animate loop
-- Added `setupLightDirection()` method called once after tower build
-- Animate loop only updates sparkle during night mode
+**Problem:** The `group.traverse(...)` block at line 141 reads `child.matrixWorld` to compute vertex world positions for `heightRatio`, but `group.updateMatrixWorld()` was never called beforehand. If a child's world matrix hadn't been computed yet by some other path, `heightRatio` values would be incorrect.
+
+**Fix:** Added `group.updateMatrixWorld();` on line 141, before the `group.traverse(...)` block, ensuring all child world matrices are up-to-date before they're read.
+
+---
 
 ## Verification
-- `npm test`: **53 tests passed** (7 test files)
-- `npm run build`: **Build succeeded** (tsc + vite)
-- No `.js` files regenerated (thanks to `noEmit: true`)
 
-## Commit
-- `e264a34` — `fix: address final review issues`
-- Modified: 9 source files + 1 test file + 1 config
-- Deleted: 2 tracked `.js` files
+| Check | Result |
+|-------|--------|
+| `npm test` (63 tests) | All 63 passed |
+| `npm run build` | Succeeded |
+| Commit | `e0da3c7` — "fix: add middle density tier and updateMatrixWorld in LegTrussBuilder" |

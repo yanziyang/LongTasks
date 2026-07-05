@@ -1,137 +1,250 @@
-### Task 2: Constants Module with Validation
+### Task 2: Create LegTrussBuilder — Four Lattice Truss Legs
 
 **Files:**
-- Create: `src/constants.ts`
-- Create: `tests/constants.test.ts`
+- Create: `src/tower/builders/LegTrussBuilder.ts`
+- Create: `tests/leg-truss.test.ts`
 
 **Interfaces:**
-- Produces: `HEIGHT_TOTAL`, `HEIGHT_TOP`, `ANTENNA_HEIGHT`, `BASE_HALF_WIDTH`, `PLATFORM_HEIGHTS`, `PLATFORM_HALF_WIDTHS`, `SCENE_SCALE`, `RING_COUNT`, `SPARKLE_INTERVAL_MS`, `SPARKLE_DURATION_MS`, `SPARKLE_ENTER_DURATION_MS`, `TOWER_COLOR_LOWER`, `TOWER_COLOR_MIDDLE`, `TOWER_COLOR_UPPER`, `ANTENNA_COLOR`, `CAMERA_INITIAL_POSITION`, `CAMERA_TARGET`, `AUTO_ROTATION_SPEED`, `AUTO_ROTATION_RECOVERY_S`
+- Produces: `buildLegTrusses(materials: THREE.Material[] | THREE.Material, fallback: boolean): THREE.Group`
 
-- [ ] **Step 1: Create tests/constants.test.ts**
+- [ ] **Step 1: Create tests/leg-truss.test.ts**
 
 ```typescript
 import { describe, it, expect } from 'vitest';
+import * as THREE from 'three';
+import { buildLegTrusses } from '../src/tower/builders/LegTrussBuilder';
+import { createTowerMaterialFallback } from '../src/tower/materials';
 
-describe('constants', () => {
-  it('has positive base half width', async () => {
-    const { BASE_HALF_WIDTH } = await import('../src/constants');
-    expect(BASE_HALF_WIDTH).toBeGreaterThan(0);
+function countMeshes(obj: THREE.Object3D): number {
+  let count = 0;
+  obj.traverse((child) => {
+    if (child instanceof THREE.Mesh) count++;
+  });
+  return count;
+}
+
+describe('buildLegTrusses', () => {
+  it('returns a Group', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLegTrusses(mats, true);
+    expect(result).toBeInstanceOf(THREE.Group);
   });
 
-  it('has positive total height', async () => {
-    const { HEIGHT_TOTAL } = await import('../src/constants');
-    expect(HEIGHT_TOTAL).toBeGreaterThan(0);
+  it('contains 4 leg sub-groups', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLegTrusses(mats, true);
+    const legGroups = result.children.filter((c) => c instanceof THREE.Group);
+    expect(legGroups.length).toBe(4);
   });
 
-  it('total height exceeds top height', async () => {
-    const { HEIGHT_TOTAL, HEIGHT_TOP } = await import('../src/constants');
-    expect(HEIGHT_TOTAL).toBeGreaterThan(HEIGHT_TOP);
-  });
-
-  it('antenna height equals total minus top', async () => {
-    const { HEIGHT_TOTAL, HEIGHT_TOP, ANTENNA_HEIGHT } = await import('../src/constants');
-    expect(ANTENNA_HEIGHT).toBe(HEIGHT_TOTAL - HEIGHT_TOP);
-  });
-
-  it('platform heights are ascending', async () => {
-    const { PLATFORM_HEIGHTS } = await import('../src/constants');
-    for (let i = 1; i < PLATFORM_HEIGHTS.length; i++) {
-      expect(PLATFORM_HEIGHTS[i]).toBeGreaterThan(PLATFORM_HEIGHTS[i - 1]);
+  it('each leg has many meshes (chords + bracing)', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLegTrusses(mats, true);
+    const legGroups = result.children.filter((c) => c instanceof THREE.Group);
+    for (const leg of legGroups) {
+      expect(countMeshes(leg)).toBeGreaterThan(200);
     }
   });
 
-  it('platform half widths are positive and decreasing', async () => {
-    const { PLATFORM_HEIGHTS, PLATFORM_HALF_WIDTHS } = await import('../src/constants');
-    const widths = PLATFORM_HEIGHTS.map((h) => PLATFORM_HALF_WIDTHS[h]);
-    for (const w of widths) expect(w).toBeGreaterThan(0);
-    for (let i = 1; i < widths.length; i++) {
-      expect(widths[i]).toBeLessThan(widths[i - 1]);
-    }
+  it('has non-zero bounding box', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLegTrusses(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
   });
 
-  it('scene scale is positive and less than 1', async () => {
-    const { SCENE_SCALE } = await import('../src/constants');
-    expect(SCENE_SCALE).toBeGreaterThan(0);
-    expect(SCENE_SCALE).toBeLessThan(1);
+  it('bounding box spans 0 to LEG_SECTION_HEIGHT in Y', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLegTrusses(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.min.y).toBeLessThan(5);
+    expect(box.max.y).toBeGreaterThan(50);
   });
 
-  it('camera initial position has valid values', async () => {
-    const { CAMERA_INITIAL_POSITION } = await import('../src/constants');
-    expect(CAMERA_INITIAL_POSITION.x).toBeGreaterThan(0);
-    expect(CAMERA_INITIAL_POSITION.y).toBeGreaterThan(0);
+  it('has heightRatio attribute on meshes', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildLegTrusses(mats, true);
+    let foundAttribute = false;
+    result.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.geometry.attributes.heightRatio) {
+        foundAttribute = true;
+      }
+    });
+    expect(foundAttribute).toBe(true);
   });
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run test to verify it fails** — `npm test` → FAIL
 
-```bash
-npm test
-```
-
-Expected: FAIL — `src/constants.ts` does not exist.
-
-- [ ] **Step 3: Create src/constants.ts**
+- [ ] **Step 3: Create src/tower/builders/LegTrussBuilder.ts**
 
 ```typescript
 import * as THREE from 'three';
+import { profile } from '../profile';
+import {
+  BASE_HALF_WIDTH,
+  HEIGHT_TOP,
+  LEG_TRUSS_WIDTH_BASE,
+  LEG_TRUSS_WIDTH_TOP,
+  LEG_TRUSS_BAY_HEIGHT,
+  LEG_SECTION_HEIGHT,
+} from '../../constants';
 
-export const HEIGHT_TOTAL = 330;
-export const HEIGHT_TOP = 300;
-export const ANTENNA_HEIGHT = HEIGHT_TOTAL - HEIGHT_TOP;
-export const BASE_HALF_WIDTH = 62.5;
+const CHORD_RADIUS = 0.5;
+const STRUT_RADIUS = 0.25;
+const BRACE_RADIUS = 0.2;
+const CYLINDER_GEO = new THREE.CylinderGeometry(1, 1, 1, 6);
 
-export const PLATFORM_HEIGHTS = [57, 115, 276] as const;
+function beamBetween(a: THREE.Vector3, b: THREE.Vector3, mat: THREE.Material, radius: number): THREE.Mesh | null {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  if (len < 0.01) return null;
+  const geo = CYLINDER_GEO.clone();
+  geo.scale(radius, len, radius);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(a).add(b).multiplyScalar(0.5);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  return mesh;
+}
 
-export const PLATFORM_HALF_WIDTHS: Record<number, number> = {
-  57: 32.5,
-  115: 18.8,
-  276: 9,
-};
+function legCenterAtHeight(corner: number, h: number): THREE.Vector3 {
+  const w = profile(Math.min(h, LEG_SECTION_HEIGHT));
+  const sx = corner === 0 || corner === 3 ? -w : w;
+  const sz = corner === 0 || corner === 1 ? -w : w;
+  return new THREE.Vector3(sx, h, sz);
+}
 
-export const SCENE_SCALE = 0.01;
-export const RING_COUNT = 150;
+function legTrussWidth(h: number): number {
+  const t = Math.min(h / LEG_SECTION_HEIGHT, 1);
+  return LEG_TRUSS_WIDTH_BASE + (LEG_TRUSS_WIDTH_TOP - LEG_TRUSS_WIDTH_BASE) * t;
+}
 
-export const SPARKLE_INTERVAL_MS = 180_000; // 3 minutes
-export const SPARKLE_DURATION_MS = 20_000;
-export const SPARKLE_ENTER_DURATION_MS = 10_000;
+function chordOffset(corner: number, chordIndex: number, halfWidth: number): { dx: number; dz: number } {
+  const cornerSigns = [
+    { x: -1, z: -1 },
+    { x: 1, z: -1 },
+    { x: 1, z: 1 },
+    { x: -1, z: 1 },
+  ];
+  const sign = cornerSigns[corner];
+  const chordSigns = [
+    { dx: -1, dz: -1 },
+    { dx: 1, dz: -1 },
+    { dx: 1, dz: 1 },
+    { dx: -1, dz: 1 },
+  ];
+  const cs = chordSigns[chordIndex];
+  return { dx: sign.x * cs.dx * halfWidth, dz: sign.z * cs.dz * halfWidth };
+}
 
-export const TOWER_COLOR_LOWER = new THREE.Color(0x5a3d2b);
-export const TOWER_COLOR_MIDDLE = new THREE.Color(0x6b5b47);
-export const TOWER_COLOR_UPPER = new THREE.Color(0x7a6e5d);
-export const ANTENNA_COLOR = 0x2a2a2a;
+function chordPoint(corner: number, chordIndex: number, h: number): THREE.Vector3 {
+  const center = legCenterAtHeight(corner, h);
+  const hw = legTrussWidth(h) / 2;
+  const { dx, dz } = chordOffset(corner, chordIndex, hw);
+  return new THREE.Vector3(center.x + dx, h, center.z + dz);
+}
 
-export const CAMERA_INITIAL_POSITION = new THREE.Vector3(250, 120, 250);
-export const CAMERA_TARGET = new THREE.Vector3(0, 150, 0);
-export const AUTO_ROTATION_SPEED = 0.15; // rad/min
-export const AUTO_ROTATION_RECOVERY_S = 3; // seconds to recover speed after drag
+function buildSingleLeg(corner: number, mat: THREE.Material): THREE.Group {
+  const group = new THREE.Group();
+  const bayCount = Math.floor(LEG_SECTION_HEIGHT / LEG_TRUSS_BAY_HEIGHT);
 
-if (BASE_HALF_WIDTH <= 0) throw new Error('BASE_HALF_WIDTH must be positive');
-if (HEIGHT_TOP <= 0) throw new Error('HEIGHT_TOP must be positive');
-if (ANTENNA_HEIGHT <= 0) throw new Error('ANTENNA_HEIGHT must be positive');
-if (SCENE_SCALE <= 0 || SCENE_SCALE >= 1) throw new Error('SCENE_SCALE must be between 0 and 1');
-if (RING_COUNT < 10) throw new Error('RING_COUNT must be at least 10');
-if (SPARKLE_INTERVAL_MS <= SPARKLE_DURATION_MS) throw new Error('sparkle interval must exceed sparkle duration');
-if (SPARKLE_ENTER_DURATION_MS > SPARKLE_DURATION_MS) throw new Error('enter sparkle must not exceed regular sparkle duration');
-
-for (let i = 1; i < PLATFORM_HEIGHTS.length; i++) {
-  if (PLATFORM_HEIGHTS[i] <= PLATFORM_HEIGHTS[i - 1]) {
-    throw new Error('platform heights must be ascending');
+  const ringHeights: number[] = [];
+  for (let i = 0; i <= bayCount; i++) {
+    ringHeights.push(i * LEG_TRUSS_BAY_HEIGHT);
   }
+
+  const chordCurves: THREE.Vector3[][] = [[], [], [], []];
+  for (let i = 0; i <= bayCount; i++) {
+    const h = ringHeights[i];
+    for (let c = 0; c < 4; c++) {
+      chordCurves[c].push(chordPoint(corner, c, h));
+    }
+  }
+
+  for (let c = 0; c < 4; c++) {
+    const curve = new THREE.CatmullRomCurve3(chordCurves[c]);
+    const geo = new THREE.TubeGeometry(curve, bayCount * 4, CHORD_RADIUS, 6, false);
+    group.add(new THREE.Mesh(geo, mat));
+  }
+
+  for (let bay = 0; bay < bayCount; bay++) {
+    const h0 = ringHeights[bay];
+    const h1 = ringHeights[bay + 1];
+
+    for (const h of [h0, h1]) {
+      for (let c = 0; c < 4; c++) {
+        const next = (c + 1) % 4;
+        const p0 = chordPoint(corner, c, h);
+        const p1 = chordPoint(corner, next, h);
+        const strut = beamBetween(p0, p1, mat, STRUT_RADIUS);
+        if (strut) group.add(strut);
+      }
+    }
+
+    const midH = (h0 + h1) / 2;
+    for (let c = 0; c < 4; c++) {
+      const next = (c + 1) % 4;
+      const p0 = chordPoint(corner, c, midH);
+      const p1 = chordPoint(corner, next, midH);
+      const strut = beamBetween(p0, p1, mat, STRUT_RADIUS);
+      if (strut) group.add(strut);
+    }
+
+    for (let c = 0; c < 4; c++) {
+      const next = (c + 1) % 4;
+      const botA = chordPoint(corner, c, h0);
+      const botB = chordPoint(corner, next, h0);
+      const topA = chordPoint(corner, c, h1);
+      const topB = chordPoint(corner, next, h1);
+      const d1 = beamBetween(botA, topB, mat, BRACE_RADIUS);
+      const d2 = beamBetween(botB, topA, mat, BRACE_RADIUS);
+      if (d1) group.add(d1);
+      if (d2) group.add(d2);
+    }
+  }
+
+  return group;
+}
+
+export function buildLegTrusses(materials: THREE.Material[] | THREE.Material, fallback: boolean): THREE.Group {
+  const group = new THREE.Group();
+  if (!materials) return group;
+
+  const mat = fallback
+    ? (materials as THREE.Material[])[0]
+    : (materials as THREE.Material);
+
+  for (let corner = 0; corner < 4; corner++) {
+    const leg = buildSingleLeg(corner, mat);
+    leg.name = `leg-${corner}`;
+    group.add(leg);
+  }
+
+  group.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.geometry && child.geometry.attributes.position) {
+      const positions = child.geometry.attributes.position;
+      const heightRatios = new Float32Array(positions.count);
+      const vertex = new THREE.Vector3();
+      const matrix = child.matrixWorld;
+      for (let i = 0; i < positions.count; i++) {
+        vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
+        vertex.applyMatrix4(matrix);
+        heightRatios[i] = vertex.y / HEIGHT_TOP;
+      }
+      child.geometry.setAttribute('heightRatio', new THREE.BufferAttribute(heightRatios, 1));
+    }
+  });
+
+  return group;
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
-
-```bash
-npm test
-```
-
-Expected: PASS — 8 tests pass.
+- [ ] **Step 4: Run test** — `npm test` → PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/constants.ts tests/constants.test.ts
-git commit -m "feat: add constants module with runtime validation"
+git add src/tower/builders/LegTrussBuilder.ts tests/leg-truss.test.ts
+git commit -m "feat: add LegTrussBuilder with 4-chord lattice truss legs"
 ```
