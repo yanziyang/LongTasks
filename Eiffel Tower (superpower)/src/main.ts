@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { createTower } from './tower/geometry';
+import { createTower, setTowerNight } from './tower/geometry';
 import { createControls } from './scene/Controls';
 import { Lighting } from './scene/Lighting';
 import { createOverlay } from './ui/Overlay';
+import { createDayNightToggle } from './ui/DayNightToggle';
 
 const app = document.getElementById('app')!;
 
@@ -44,6 +45,13 @@ const tower = createTower();
 scene.add(tower);
 
 createOverlay(app);
+
+createDayNightToggle(app, (night) => {
+  setTowerNight(tower, night);
+  if (night) lighting.setNight();
+  else lighting.setDay();
+  scene.background = new THREE.Color(night ? 0x05060f : 0x9fb8d8);
+});
 
 renderer.setAnimationLoop(() => {
   const now = performance.now();

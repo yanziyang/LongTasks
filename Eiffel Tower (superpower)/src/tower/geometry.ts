@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { profile } from './profile';
-import { dayMaterial, antennaMaterial } from './materials';
+import { dayMaterial, nightMaterial, antennaMaterial } from './materials';
 import { HEIGHT_TOP, RING_COUNT, SCENE_SCALE, PLATFORM_HEIGHTS, ANTENNA_HEIGHT } from '../constants';
 
 const PIER_RADIUS = 1.2;
@@ -95,4 +95,14 @@ export function createTower(): THREE.Group {
   });
   group.scale.setScalar(SCENE_SCALE);
   return group;
+}
+
+export function setTowerNight(group: THREE.Group, night: boolean): void {
+  const mat = night ? nightMaterial : dayMaterial;
+  group.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (mesh.isMesh && (mesh.material === dayMaterial || mesh.material === nightMaterial)) {
+      mesh.material = mat;
+    }
+  });
 }
