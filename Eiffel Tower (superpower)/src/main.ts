@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createTower } from './tower/geometry';
 
 const app = document.getElementById('app')!;
 
@@ -26,12 +27,8 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 
-const placeholder = new THREE.Mesh(
-  new THREE.BoxGeometry(0.5, 3.3, 0.5),
-  new THREE.MeshStandardMaterial({ color: 0x6b5b47 }),
-);
-placeholder.position.y = 1.65;
-scene.add(placeholder);
+const tower = createTower();
+scene.add(tower);
 
 renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
