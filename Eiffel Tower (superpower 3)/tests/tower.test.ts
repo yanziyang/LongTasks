@@ -9,13 +9,13 @@ describe('buildTower', () => {
     expect(result.group).toBeInstanceOf(THREE.Group);
   });
 
-  it('contains meshes from all six builders', () => {
+  it('contains meshes from all builders (engineering model density)', () => {
     const result = buildTower();
     let meshCount = 0;
     result.group.traverse((child) => {
       if (child instanceof THREE.Mesh) meshCount++;
     });
-    expect(meshCount).toBeGreaterThan(100);
+    expect(meshCount).toBeGreaterThan(2000);
   });
 
   it('has material defined', () => {

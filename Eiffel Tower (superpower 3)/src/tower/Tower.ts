@@ -1,7 +1,6 @@
 import * as THREE from 'three';
-import { buildLegs } from './builders/LegBuilder';
-import { buildLattice } from './builders/LatticeBuilder';
-import { buildArches } from './builders/ArchBuilder';
+import { buildLegTrusses } from './builders/LegTrussBuilder';
+import { buildInterLegLattice } from './builders/InterLegLatticeBuilder';
 import { buildPlatforms } from './builders/PlatformBuilder';
 import { buildCabin } from './builders/CabinBuilder';
 import { buildAntenna } from './builders/AntennaBuilder';
@@ -31,9 +30,8 @@ export function buildTower(): TowerBuildResult {
 
   const group = new THREE.Group();
 
-  group.add(buildLegs(material, isFallback));
-  group.add(buildLattice(material, isFallback));
-  group.add(buildArches(material, isFallback));
+  group.add(buildLegTrusses(material, isFallback));
+  group.add(buildInterLegLattice(material, isFallback));
   group.add(buildPlatforms(material, isFallback));
   group.add(buildCabin(material, isFallback));
   group.add(buildAntenna());
