@@ -80,3 +80,27 @@ describe('buildArches', () => {
     expect(box.isEmpty()).toBe(false);
   });
 });
+
+import { buildPlatforms } from '../src/tower/builders/PlatformBuilder';
+
+describe('buildPlatforms', () => {
+  it('returns a Group', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildPlatforms(mats, true);
+    expect(result).toBeInstanceOf(THREE.Group);
+  });
+
+  it('contains platform deck and railing meshes', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildPlatforms(mats, true);
+    const meshCount = countMeshes(result);
+    expect(meshCount).toBeGreaterThan(5);
+  });
+
+  it('has non-zero bounding box', () => {
+    const mats = createTowerMaterialFallback();
+    const result = buildPlatforms(mats, true);
+    const box = new THREE.Box3().setFromObject(result);
+    expect(box.isEmpty()).toBe(false);
+  });
+});
