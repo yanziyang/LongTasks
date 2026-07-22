@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eiffel Tower</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #bcd9e8; font-family: system-ui, sans-serif; }
+  #app { position: fixed; inset: 0; }
+  #overlay {
+    position: fixed; left: 16px; top: 16px; z-index: 10;
+    color: #1d2730; background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(6px); border-radius: 12px;
+    padding: 14px 18px; font-size: 13px; line-height: 1.55;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12); max-width: 260px; user-select: none;
+  }
+  #overlay h1 { font-size: 16px; margin: 0 0 6px; letter-spacing: .3px; }
+  #overlay .muted { color: #4a5a66; font-size: 12px; }
+  #overlay kbd { background:#eef2f5; border:1px solid #c9d3da; border-radius:4px; padding:0 5px; font-size:11px; }
+  #hint { position: fixed; right: 16px; bottom: 14px; z-index: 10; color:#33424c; font-size: 12px; background: rgba(255,255,255,0.6); padding: 6px 10px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div id="overlay">
+  <h1>Tour Eiffel</h1>
+  <div>Procedural 3D model &middot; real proportions (324&nbsp;m)</div>
+  <div class="muted" style="margin-top:8px;">
+    <kbd>drag</kbd> orbit &nbsp; <kbd>scroll</kbd> zoom &nbsp; <kbd>right-drag</kbd> pan
+  </div>
+</div>
+<div id="hint">324 m &middot; Paris</div>
+<div id="app"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* ---------- Scene setup ---------- */
+const scene = new THREE.Scene();
+const SKY = 0xbcd9e8;
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 900, 2600);
+
+const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.5, 6000);
+camera.position.set(420, 300, 430);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.getElementById('app').appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 150, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.maxDistance = 2200;
+controls.minDistance = 60;
+
+/* ---------- Lights ---------- */
+scene.add(new THREE.HemisphereLight(0xcfe6f2, 0x6b6256, 0.75));
+const sun = new THREE.DirectionalLight(0xfff3e0, 1.55);
+sun.position.set(520, 760, 340);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 100;
+sun.shadow.camera.far = 2400;
+const s = 520;
+sun.shadow.camera.left = -s; sun.shadow.camera.right = s;
+sun.shadow.camera.top = s; sun.shadow.camera.bottom = -s;
+sun.shadow.bias = -0.0004;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0x9fc4e0, 0.35)); // fill from opposite side
+
+/* ---------- Tower profile (half-width vs height, metres) ---------- */
+const wp = [
+  [0, 62.5], [15, 58], [30, 49], [45, 39], [57, 32.5], [70, 28],
+  [85, 24], [100, 21.5], [115, 20], [135, 17.5], [160, 15.5],
+  [185, 13.5], [210, 12], [235, 10.7], [260, 9.7], [276, 9],
+  [288, 8.2], [300, 7.5], [312, 6], [324, 4]
+];
+function W(h) {
+  if (h <= wp[0][0]) return wp[0][1];
+  if (h >= wp[wp.length - 1][0]) return wp[wp.length - 1][1];
+  for (let i = 1; i < wp.length; i++) {
+    if (h <= wp[i][0]) {
+      const [h0, w0] = wp[i - 1], [h1, w1] = wp[i];
+      return w0 + (w1 - w0) * (h - h0) / (h1 - h0);
+    }
+  }
+  return wp[wp.length - 1][1];
+}
+const HTOP = 300;          // top of structural ironwork
+const HANT = 324;          // tip of antenna
+const ARCH_PEAK = 42;      // height of the base arches
+
+/* corner of the square plan at height h. c = 0..3 */
+const SXP = [1, -1, -1, 1];
+const SZP = [1, 1, -1, -1];
+function corner(c, h) {
+  const w = W(h);
+  return new THREE.Vector3(SXP[c] * w, h, SZP[c] * w);
+}
+/* a point on a face: f in 0..3, h height, a in [-1,1] (+1 at corner f, -1 at corner f+1) */
+const CONST_AXIS = ['z', 'x', 'z', 'x'];      // which horizontal coord is constant on the face
+const CONST_SIGN = [1, -1, -1, 1];
+function facePoint(f, h, a) {
+  const w = W(h);
+  const across = a * w;
+  const cst = CONST_SIGN[f] * w;
+  if (CONST_AXIS[f] === 'x') return new THREE.Vector3(cst, h, across);
+  return new THREE.Vector3(across, h, cst);
+}
+
+/* ---------- Beam builder (collect geometries to merge) ---------- */
+const geoms = [];
+const _up = new THREE.Vector3(0, 1, 0);
+function beam(p1, p2, r) {
+  const dir = new THREE.Vector3().subVectors(p2, p1);
+  const len = dir.length();
+  if (len < 1e-4 || r <= 0) return;
+  const g = new THREE.CylinderGeometry(r, r, len, 6, 1, false);
+  g.translate(0, len / 2, 0);
+  const m = new THREE.Matrix4();
+  m.makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(_up, dir.normalize()));
+  m.setPosition(p1);
+  g.applyMatrix4(m);
+  geoms.push(g);
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const rLeg   = h => lerp(1.15, 0.26, h / HTOP);   // leg beam radius
+const rBrace = h => lerp(0.42, 0.12, h / HTOP);   // lattice beam radius
+const rSub   = h => lerp(0.22, 0.08, h / 115);    // leg sub-lattice radius
+
+/* ---------- Legs (4 outer corner beams, full height) ---------- */
+const STEP = 2;
+for (let c = 0; c < 4; c++) {
+  for (let h = 0; h < HTOP; h += STEP) {
+    beam(corner(c, h), corner(c, Math.min(h + STEP, HTOP)), rLeg((h + h + STEP) / 2));
+  }
+}
+
+/* ---------- Inner leg beams + sub-lattice (lower two sections only) ---------- */
+const LLEG_TOP = 115;
+function lw(h) { return lerp(18, 4, h / LLEG_TOP); } // leg width
+function innerCorner(c, h) {
+  const w = W(h), d = lw(h);
+  return new THREE.Vector3(SXP[c] * (w - d), h, SZP[c] * (w - d));
+}
+for (let c = 0; c < 4; c++) {
+  for (let h = 0; h < LLEG_TOP; h += STEP) {
+    beam(innerCorner(c, h), innerCorner(c, Math.min(h + STEP, LLEG_TOP)), rSub(h) * 1.4);
+  }
+}
+// sub-lattice X bracing between outer and inner of each leg
+for (let c = 0; c < 4; c++) {
+  for (let h = 0; h < LLEG_TOP; h += 5) {
+    const h2 = Math.min(h + 5, LLEG_TOP);
+    const o1 = corner(c, h), o2 = corner(c, h2);
+    const i1 = innerCorner(c, h), i2 = innerCorner(c, h2);
+    beam(o1, i1, rSub(h));                 // horizontal tie
+    beam(o1, i2, rSub(h));                 // diagonal
+    beam(i1, o2, rSub(h));                 // diagonal (X)
+  }
+}
+
+/* ---------- Arches on each face (decorative base arches) ---------- */
+for (let f = 0; f < 4; f++) {
+  const N = 26;
+  let prev = null;
+  for (let i = 0; i <= N; i++) {
+    const th = (i / N) * Math.PI;
+    const h = ARCH_PEAK * Math.sin(th);
+    const a = Math.cos(th);
+    const p = facePoint(f, h, a);
+    if (prev) beam(prev, p, rBrace(h) * 1.25);
+    prev = p;
+  }
+}
+
+/* ---------- Face cross-bracing (X lattice + horizontals) ---------- */
+function sectionLevels(from, to, gap) {
+  const arr = [];
+  for (let h = from; h < to - 1e-3; h += gap) arr.push(h);
+  arr.push(to);
+  return arr;
+}
+const levels = []
+  .concat(sectionLevels(ARCH_PEAK + 2, 57, 8))
+  .concat(sectionLevels(57, 115, 8.5))
+  .concat(sectionLevels(115, 276, 15))
+  .concat(sectionLevels(276, 300, 9));
+
+for (let f = 0; f < 4; f++) {
+  for (let i = 0; i < levels.length; i++) {
+    const h = levels[i];
+    // horizontal beam across the face
+    beam(facePoint(f, h, 1), facePoint(f, h, -1), rBrace(h));
+    // X diagonals to next level
+    if (i < levels.length - 1) {
+      const h2 = levels[i + 1], hm = (h + h2) / 2;
+      beam(facePoint(f, h, 1), facePoint(f, h2, -1), rBrace(hm));
+      beam(facePoint(f, h, -1), facePoint(f, h2, 1), rBrace(hm));
+    }
+  }
+}
+
+/* ---------- Merge all ironwork ---------- */
+const ironMat = new THREE.MeshStandardMaterial({
+  color: 0x6a5132, metalness: 0.78, roughness: 0.52, envMapIntensity: 0.8
+});
+const merged = mergeGeometries(geoms, false);
+const tower = new THREE.Mesh(merged, ironMat);
+tower.castShadow = true;
+tower.receiveShadow = true;
+scene.add(tower);
+
+/* ---------- Platforms (3 decks) ---------- */
+function platform(h, extra) {
+  const w = 2 * W(h) + 2;
+  const grp = new THREE.Group();
+  const deck = new THREE.Mesh(
+    new THREE.BoxGeometry(w, 2.4, w),
+    new THREE.MeshStandardMaterial({ color: 0x5c4628, metalness: 0.7, roughness: 0.6 })
+  );
+  deck.position.y = h;
+  deck.castShadow = true; deck.receiveShadow = true;
+  grp.add(deck);
+  // edge fascia
+  const fascia = new THREE.Mesh(
+    new THREE.BoxGeometry(w + 1.2, 3.4, w + 1.2),
+    new THREE.MeshStandardMaterial({ color: 0x4f3c20, metalness: 0.7, roughness: 0.6 })
+  );
+  fascia.position.y = h + 0.4;
+  fascia.castShadow = true;
+  grp.add(fascia);
+  // railing
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x6a5132, metalness: 0.8, roughness: 0.45 });
+  const rh = 2.2, rt = 0.18;
+  for (const sx of [-1, 1]) {
+    const r = new THREE.Mesh(new THREE.BoxGeometry(rt, rh, w + 0.6), railMat);
+    r.position.set(sx * (w / 2 + 0.3), h + 2.6, 0); r.castShadow = true; grp.add(r);
+  }
+  for (const sz of [-1, 1]) {
+    const r = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, rh, rt), railMat);
+    r.position.set(0, h + 2.6, sz * (w / 2 + 0.3)); r.castShadow = true; grp.add(r);
+  }
+  if (extra) extra(grp, w, h);
+  scene.add(grp);
+}
+// cabin on the 2nd + 3rd platforms
+platform(57,  (g, w, h) => {});
+platform(115, (g, w, h) => {
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(w * 0.55, 7, w * 0.55),
+    new THREE.MeshStandardMaterial({ color: 0x6f5634, metalness: 0.6, roughness: 0.6 })
+  );
+  cabin.position.set(0, h + 6, 0); cabin.castShadow = true; g.add(cabin);
+});
+platform(276, (g, w, h) => {
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(w * 0.8, 5, w * 0.8),
+    new THREE.MeshStandardMaterial({ color: 0x7a6038, metalness: 0.55, roughness: 0.6 })
+  );
+  cabin.position.set(0, h + 4.5, 0); cabin.castShadow = true; g.add(cabin);
+});
+
+/* ---------- Top section + antenna spire ---------- */
+// small cap drum between ironwork top and antenna
+const cap = new THREE.Mesh(
+  new THREE.CylinderGeometry(W(300) + 0.5, W(300) + 1.2, 3, 12),
+  ironMat
+);
+cap.position.set(0, HTOP + 1.5, 0);
+cap.castShadow = true; scene.add(cap);
+
+// upper observation cupola
+const cup = new THREE.Mesh(
+  new THREE.CylinderGeometry(2.2, 4.2, 5, 10),
+  ironMat
+);
+cup.position.set(0, HTOP + 5.5, 0); cup.castShadow = true; scene.add(cup);
+
+// antenna mast (tapered) 300 -> 324
+const mast = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.25, 1.1, HANT - HTOP - 6, 8),
+  new THREE.MeshStandardMaterial({ color: 0x705033, metalness: 0.8, roughness: 0.45 })
+);
+mast.position.set(0, HTOP + 6 + (HANT - HTOP - 6) / 2, 0);
+mast.castShadow = true; scene.add(mast);
+
+// beacon at the very top
+const beacon = new THREE.Mesh(
+  new THREE.SphereGeometry(0.8, 12, 12),
+  new THREE.MeshStandardMaterial({ color: 0xffd0a0, emissive: 0xffaa55, emissiveIntensity: 2.4 })
+);
+beacon.position.set(0, HANT, 0);
+scene.add(beacon);
+const beaconLight = new THREE.PointLight(0xffb060, 8, 120, 2);
+beaconLight.position.set(0, HANT, 0);
+scene.add(beaconLight);
+
+/* ---------- Ground ---------- */
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(2600, 64),
+  new THREE.MeshStandardMaterial({ color: 0x9aa78a, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+// plaza circle under the tower
+const plaza = new THREE.Mesh(
+  new THREE.CircleGeometry(140, 48),
+  new THREE.MeshStandardMaterial({ color: 0xc9c4b6, roughness: 0.9 })
+);
+plaza.rotation.x = -Math.PI / 2;
+plaza.position.y = 0.1;
+plaza.receiveShadow = true;
+scene.add(plaza);
+
+/* ---------- Render loop ---------- */
+function resize() {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+}
+addEventListener('resize', resize);
+
+let t0 = performance.now();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = (performance.now() - t0) / 1000;
+  // gentle pulsing beacon
+  beacon.material.emissiveIntensity = 2.0 + Math.sin(t * 3) * 1.2;
+  beaconLight.intensity = 6 + Math.sin(t * 3) * 3;
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
